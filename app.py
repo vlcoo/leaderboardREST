@@ -69,6 +69,9 @@ def hello_world() -> str:
     return f"""Hola! rest api roguelike. uso:
         - GET /leaderboard (solo los {PAGE_SIZE} primeros)
         - GET /leaderboard?page=x (paginado {PAGE_SIZE} jugadores a la vez, empezando por 0)
+        - GET /leaderboard?page=x&sort=y (jugadores ordenados por tipo de ordenamiento "scores", "floors", "kills", "boss_kills", "time")
+        - GET /leaderboard/nombreDeJugador (mostrar puntuaciones del jugador en concreto)
+        - POST 
         - POST /newEntry (dados pname, floors, kills, bossKills y time)
     """
 
