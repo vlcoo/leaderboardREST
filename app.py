@@ -2,7 +2,7 @@
 # GET /leaderboard?page=x (x es el número de pagina). devuelve la lista de 10 jugadores con sus datos.
 # POST /newEntry. dados pname, floors, kills, bossKills y time. devuelve el ranking del jugador.
 
-from flask import Flask
+from flask import Flask, request
 import pickle
 
 
@@ -45,13 +45,12 @@ def hello_world() -> str:
 
 @app.route('/leaderboard', methods=['GET'])
 def get_leaderboard() -> dict:
-    return get_leaderboard_by_page(0)
+    page = request.args.get("page", 0, type=int)
+    print(f"splicing at page {page}!!")
 
-
-@app.route('/leaderboard?page=<int:page>', methods=['GET'])
-def get_leaderboard_by_page(page: int) -> dict:
+    if page > (len(leaderboard_db) // PAGE_SIZE):
+        return {"leaderboard": []}
     return {"leaderboard": [entry.serialize() for entry in leaderboard_db[page * PAGE_SIZE: (page + 1) * PAGE_SIZE]]}
-
 
 # endregion
 
@@ -60,6 +59,7 @@ def get_leaderboard_by_page(page: int) -> dict:
 @app.route('/newEntry', methods=['POST'])
 def new_entry() -> str:
     return "Not implemented."
+
 # endregion
 
 
