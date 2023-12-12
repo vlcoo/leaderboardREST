@@ -2,16 +2,16 @@
 # GET /leaderboard?page=x (x es el número de pagina). devuelve la lista de 10 jugadores con sus datos.
 # POST /newEntry. dados pname, floors, kills, bossKills y time. devuelve el ranking del jugador.
 
-from flask import Flask
+from flask import Flask, request
 import pickle
-
+import os.path
 
 class LeaderboardEntry:
-    def __init__(self, pname: str, floors: int, kills: int, boss_kills: int, time: int):
+    def __init__(self, pname: str, floors: int, kills: int, bossKills: int, time: int):
         self.pname = pname
         self.floors = floors
         self.kills = kills
-        self.boss_kills = boss_kills
+        self.bossKills = bossKills
         self.time = time
 
     def serialize(self):
@@ -19,7 +19,7 @@ class LeaderboardEntry:
             "pname": self.pname,
             "floors": self.floors,
             "kills": self.kills,
-            "boss_kills": self.boss_kills,
+            "bossKills": self.bossKills,
             "time": self.time
         }
 
@@ -58,8 +58,14 @@ def get_leaderboard_by_page(page: int) -> dict:
 
 # region Métodos POST
 @app.route('/newEntry', methods=['POST'])
-def new_entry() -> str:
-    return "Not implemented."
+def new_entry():
+    entry = LeaderboardEntry(pname=request.json['pname'],
+                             floors=request.json['floors'],
+                             kills=request.json['kills'],
+                             bossKills=request.json['bossKills'],
+                             time=request.json['time'])
+    add_entry_and_save(entry)
+    return {'pname':request.json['pname']}
 # endregion
 
 
@@ -73,7 +79,9 @@ def add_entry_and_save(entry: LeaderboardEntry) -> None:
 # TODO: cargar datos de archivo a variable de db
 def _load_db() -> list[LeaderboardEntry]:
     loaded_leaderboard: list[LeaderboardEntry] = []
-
+    if(not os.path.isfile("leaderboard.pkl")):
+        return loaded_leaderboard
+    
     with open("leaderboard.pkl", "rb") as f:
         for entry in pickle.load(f):
             if type(entry) is LeaderboardEntry:
@@ -91,6 +99,8 @@ def _populate_test_db() -> None:
 
 with app.app_context():
     leaderboard_db = _load_db()
+    if(not os.path.isfile("leaderboard.pkl")):
+       _populate_test_db()
     print(leaderboard_db)
 
 
