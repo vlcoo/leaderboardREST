@@ -75,33 +75,36 @@ def add_entry_and_save(entry: LeaderboardEntry) -> None:
     print(f"saved {entry}!!")
 
 
-# TODO: cargar datos de archivo a variable de db
+# loads the leaderboard list from file. if file doesn't exist, creates it. returns the loaded list
 def _load_db() -> list[LeaderboardEntry]:
     loaded_leaderboard: list[LeaderboardEntry] = []
-    if(not os.path.isfile("leaderboard.pkl")):
-        return loaded_leaderboard
-    
-    with open("leaderboard.pkl", "rb") as f:
-        for entry in pickle.load(f):
-            if type(entry) is LeaderboardEntry:
-                loaded_leaderboard.append(entry)
-            else:
-                print(f"entry {entry} of type {type(entry)} is invalid!!")
+
+    # only load from file if it contains stuff. if not we can just use the empty list
+    if not _create_db():
+        with open("leaderboard.pkl", "rb") as f:
+            for entry in pickle.load(f):
+                if type(entry) is LeaderboardEntry:
+                    loaded_leaderboard.append(entry)
+                else:
+                    print(f"entry {entry} of type {type(entry)} is invalid!!")
 
     return loaded_leaderboard
 
 
-def _populate_test_db() -> None:
-    j = LeaderboardEntry("vic", 1, 2, 3, 4)
-    add_entry_and_save(j)
+# returns true if database file didn't exist and was created
+def _create_db() -> bool:
+    if not os.path.isfile("leaderboard.pkl"):
+        print("leaderboard file not found, creating new one!!")
+
+        with open("leaderboard.pkl", "wb") as f:
+            pickle.dump([], f)
+        return True
+
+    return False
 
 
 with app.app_context():
     leaderboard_db = _load_db()
-    if(not os.path.isfile("leaderboard.pkl")):
-       _populate_test_db()
-    print(leaderboard_db)
-
 
 if __name__ == '__main__':
     app.run()
