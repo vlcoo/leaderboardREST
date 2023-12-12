@@ -53,11 +53,11 @@ PAGE_SIZE = 8
 SCHEMA = {
     "type": "object",
     "properties": {
-        "pname": {"type": "string"},
-        "floors": {"type": "integer"},
-        "kills": {"type": "integer"},
-        "boss_kills": {"type": "integer"},
-        "time": {"type": "integer"},
+        "pname": {"type": "string", "minLength": 1, "maxLength": 12},
+        "floors": {"type": "integer", "minimum": 0},
+        "kills": {"type": "integer", "minimum": 0},
+        "boss_kills": {"type": "integer", "minimum": 0},
+        "time": {"type": "integer", "minimum": 0},
     },
     "required": ["pname", "floors", "kills", "boss_kills", "time"],
 }
@@ -67,9 +67,11 @@ SCHEMA = {
 @app.route('/', methods=['GET'])
 def hello_world() -> str:
     return f"""Hola! rest api roguelike. uso:
-        - GET /leaderboard (solo los {PAGE_SIZE} primeros)
-        - GET /leaderboard?page=x (paginado {PAGE_SIZE} jugadores a la vez, empezando por 0)
-        - POST /newEntry (dados pname, floors, kills, bossKills y time)
+        - GET /leaderboard (metadatos sobre la paginacion.)
+        - GET /leaderboard?page=x (paginado {PAGE_SIZE} jugadores a la vez, empezando por 0.)
+        - GET /leaderboard?sort=x (ordenar la lista de scores. metodos disponibles: {', '.join([sort_type.value for sort_type in SortType])}.)
+        - GET /leaderboard/x (filtrar base de datos por nombre de jugador, soporta page y sort.)
+        - POST /newEntry (dados pname, floors, kills, bossKills y time.)
     """
 
 
@@ -84,7 +86,7 @@ def get_leaderboard() -> dict:
     page = request.args.get("page", 0, type=int)
     sort_type = request.args.get("sort", SortType.SCORE.value, type=str)
 
-    return {"leaderboard": [entry.serialize() for entry in get_paginated_sorted_filtered_leaderboard(sort_type, page=page)]}
+    return {"leaderboard": [entry.serialize() for entry in get_sorted_filtered_paginated_leaderboard(sort_type, page=page)]}
 
 
 @app.route('/leaderboard/<string:pname>', methods=['GET'])
@@ -92,7 +94,19 @@ def get_leaderboard_by_name(pname: str) -> dict:
     page = request.args.get("page", 0, type=int)
     sort_type = request.args.get("sort", SortType.SCORE.value, type=str)
 
-    return {"leaderboard": [entry.serialize() for entry in get_paginated_sorted_filtered_leaderboard(sort_type, pname, page)]}
+    return {"leaderboard": [entry.serialize() for entry in get_sorted_filtered_paginated_leaderboard(sort_type, pname, page)]}
+
+
+@app.route('/leaderboard/clear', methods=['GET'])
+def clear_db() -> str:
+    global leaderboard_db
+    entries = len(leaderboard_db)
+
+    with open("leaderboard.pkl", "wb") as f:
+        pickle.dump([], f)
+    _load_db()
+
+    return f"cleared {entries} entries..."
 
 
 # endregion
@@ -119,7 +133,7 @@ def new_entry() -> str:
 
 
 # returns the sliced leaderboard, sorted by the given method and optionally filtered by a player name.
-def get_paginated_sorted_filtered_leaderboard(sort_type: str, player_name: str = "", page: int = 0) -> list[LeaderboardEntry]:
+def get_sorted_filtered_paginated_leaderboard(sort_type: str, player_name: str = "", page: int = 0) -> list[LeaderboardEntry]:
     print(f"splicing at page {page}...")
     if page > (len(leaderboard_db) // PAGE_SIZE) or not leaderboard_db:
         print("...but page is off-limits.")
