@@ -83,12 +83,16 @@ def get_leaderboard() -> dict:
 
     page = request.args.get("page", 0, type=int)
     sort_type = request.args.get("sort", SortType.SCORE.value, type=str)
-    print(f"splicing at page {page}!!")
 
-    if page > (len(leaderboard_db) // PAGE_SIZE) or not leaderboard_db:
-        return {"leaderboard": []}
+    return {"leaderboard": [entry.serialize() for entry in get_paginated_sorted_filtered_leaderboard(sort_type, page=page)]}
 
-    return {"leaderboard": [entry.serialize() for entry in get_sorted_leaderboard_by(sort_type)[page * PAGE_SIZE: (page + 1) * PAGE_SIZE]]}
+
+@app.route('/leaderboard/<string:pname>', methods=['GET'])
+def get_leaderboard_by_name(pname: str) -> dict:
+    page = request.args.get("page", 0, type=int)
+    sort_type = request.args.get("sort", SortType.SCORE.value, type=str)
+
+    return {"leaderboard": [entry.serialize() for entry in get_paginated_sorted_filtered_leaderboard(sort_type, pname, page)]}
 
 
 # endregion
@@ -114,10 +118,18 @@ def new_entry() -> str:
 # endregion
 
 
-def get_sorted_leaderboard_by(sort_type: str) -> list[LeaderboardEntry]:
+# returns the sliced leaderboard, sorted by the given method and optionally filtered by a player name.
+def get_paginated_sorted_filtered_leaderboard(sort_type: str, player_name: str = "", page: int = 0) -> list[LeaderboardEntry]:
+    print(f"splicing at page {page}...")
+    if page > (len(leaderboard_db) // PAGE_SIZE) or not leaderboard_db:
+        print("...but page is off-limits.")
+        return []
+
+    trimmed_leaderboard = [entry for entry in leaderboard_db if (player_name.lower() in entry.pname.lower() or player_name == "")]
+
     if sort_type not in [sort_type.value for sort_type in SortType]:
         sort_type = SortType.SCORE.value
-    return sorted(leaderboard_db, key=lambda entry: getattr(entry, sort_type), reverse=True)
+    return sorted(trimmed_leaderboard, key=lambda entry: getattr(entry, sort_type), reverse=True)[page * PAGE_SIZE: (page + 1) * PAGE_SIZE]
 
 
 # adds an entry to the leaderboard list and saves it to file
