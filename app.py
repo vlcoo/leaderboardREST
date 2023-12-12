@@ -3,6 +3,7 @@
 # POST /newEntry. dados pname, floors, kills, bossKills y time. devuelve el ranking del jugador.
 
 from flask import Flask, request
+from jsonschema import validate
 import pickle
 import os.path
 import enum
@@ -49,6 +50,17 @@ app = Flask(__name__)
 leaderboard_db: list[LeaderboardEntry]
 
 PAGE_SIZE = 8
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        "pname": {"type": "string"},
+        "floors": {"type": "integer"},
+        "kills": {"type": "integer"},
+        "boss_kills": {"type": "integer"},
+        "time": {"type": "integer"},
+    },
+    "required": ["pname", "floors", "kills", "boss_kills", "time"],
+}
 
 
 # region Métodos GET
@@ -85,6 +97,11 @@ def get_leaderboard() -> dict:
 # region Métodos POST
 @app.route('/newEntry', methods=['POST'])
 def new_entry() -> str:
+    try:
+        validate(request.json, SCHEMA)
+    except Exception as e:
+        return f"invalid json: {str(e).splitlines()[0]}"
+
     entry = LeaderboardEntry(pname=request.json['pname'],
                              floors=request.json['floors'],
                              kills=request.json['kills'],
