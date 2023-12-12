@@ -1,12 +1,67 @@
+# endpoints:
+# GET /leaderboard?page=x (x es el número de pagina). devuelve la lista de 10 jugadores con sus datos.
+# POST /newEntry. dados pname, floors, kills, bossKills y time. devuelve el ranking del jugador.
+
 from flask import Flask
 
+
+class LeaderboardEntry:
+    def __init__(self, pname: str, floors: int, kills: int, boss_kills: int, time: int):
+        self.pname = pname
+        self.floors = floors
+        self.kills = kills
+        self.boss_kills = boss_kills
+        self.time = time
+
+    def serialize(self):
+        return {
+            "pname": self.pname,
+            "floors": self.floors,
+            "kills": self.kills,
+            "boss_kills": self.boss_kills,
+            "time": self.time
+        }
+
+
 app = Flask(__name__)
+leaderboard_db: list[LeaderboardEntry] = []
+
+PAGE_SIZE = 10
 
 
-@app.route('/')
-def hello_world():  # put application's code here
-    return 'Hola! rest api roguelike'
+# region Métodos GET
+@app.route('/', methods=['GET'])
+def hello_world() -> str:
+    return f"""Hola! rest api roguelike. uso:
+        - GET /leadeboard (solo los {PAGE_SIZE} primeros)
+        - GET /leaderboard?page=x (paginado {PAGE_SIZE} jugadores a la vez, empezando por 0)
+        - POST /newEntry (dados pname, floors, kills, bossKills y time)
+    """
+
+
+@app.route('/leaderboard', methods=['GET'])
+def get_leaderboard() -> dict:
+    return get_leaderboard_by_page(0)
+
+
+@app.route('/leaderboard?page=<int:page>', methods=['GET'])
+def get_leaderboard_by_page(page: int) -> dict:
+    return {"leaderboard": [entry.serialize() for entry in leaderboard_db[page * PAGE_SIZE: (page + 1) * PAGE_SIZE]]}
+# endregion
+
+
+# region Métodos POST
+@app.route('/newEntry', methods=['POST'])
+def new_entry() -> str:
+    return "Not implemented."
+# endregion
+
+
+# TODO: cargar datos de archivo a variable de db
+def load_db() -> None:
+    pass
 
 
 if __name__ == '__main__':
+    load_db()
     app.run()
