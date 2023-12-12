@@ -104,7 +104,7 @@ def clear_db() -> str:
 
     with open("leaderboard.pkl", "wb") as f:
         pickle.dump([], f)
-    _load_db()
+    leaderboard_db = _load_db()
 
     return f"cleared {entries} entries..."
 
