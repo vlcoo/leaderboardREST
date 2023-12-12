@@ -86,7 +86,7 @@ def _load_db() -> list[LeaderboardEntry]:
 
 def _populate_test_db() -> None:
     j = LeaderboardEntry("vic", 1, 2, 3, 4)
-    _add_entry_and_save(j)
+    add_entry_and_save(j)
 
 
 with app.app_context():
